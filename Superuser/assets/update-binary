@@ -1,0 +1,80 @@
+#!/sbin/sh
+# arg 1 is recovery api version, generally 3.
+# arg 2 is the pipe fd, to the recovery binary.
+# communicate with it using the recovery api.
+# arg 3 is the zip file
+echo -n -e 'ui_print Installing Superuser...\n' > /proc/self/fd/$2
+echo -n -e 'ui_print\n' > /proc/self/fd/$2
+
+# detect binary versions to install
+X86=$(uname -a | grep x86)
+I686=$(uname -a | grep i686)
+I386=$(uname -a | grep i386)
+if [ ! -z "$X86" -o ! -z "$I686"  -o ! -z "$I386" ]
+then
+  PLATFORM=x86
+else
+  PLATFORM=armeabi
+fi
+
+cd /tmp
+mkdir superuser
+cd superuser
+unzip -o "$3"
+if [ "$?" -ne "0" ]
+then
+  mkdir -p $PLATFORM
+  cp /cache/su $PLATFORM/su
+  cp /cache/Superuser.apk .
+  cp /cache/install-recovery.sh .
+fi
+
+
+echo -n -e 'ui_print Installing '$PLATFORM' binaries...\n' > /proc/self/fd/$2
+echo -n -e 'ui_print\n' > /proc/self/fd/$2
+
+mount /system
+chattr -i /system/bin/su
+chattr -i /system/xbin/su
+rm -f /system/bin/su
+rm -f /system/xbin/su
+rm -f /system/app/Superuser.*
+rm -f /system/app/Supersu.*
+rm -f /system/app/superuser.*
+rm -f /system/app/supersu.*
+rm -f /system/app/SuperUser.*
+rm -f /system/app/SuperSU.*
+
+cp $PLATFORM/su /system/xbin/su
+chown 0:0 /system/xbin/su
+chmod 6755 /system/xbin/su
+ln -s /system/xbin/su /system/bin/su
+
+cp Superuser.apk /system/app
+chmod 644 /system/app/Superuser.apk
+
+# if the system is at least 4.3, and there is no su daemon built in,
+# let's try to install it using install-recovery.sh
+BUILD_RELEASE_VERSION=$(cat /system/build.prop | grep ro\\.build\\.version\\.release)
+IS_43=$(echo $BUILD_RELEASE_VERSION | grep 4\\.3)
+if [ ! -z "$IS_43" ]
+then
+  if [ "$IS_43" \> "4.3"  -o "$IS_43" == "4.3" ]
+  then
+    # check for rom su daemon before clobbering install-recovery.sh
+    if [ ! -f "/system/etc/.has_su_daemon" ]
+    then
+        echo -n -e 'ui_print Installing Superuser daemon...\n' > /proc/self/fd/$2
+        echo -n -e 'ui_print\n' > /proc/self/fd/$2
+        chattr -i /system/etc/install-recovery.sh
+        cp install-recovery.sh /system/etc/install-recovery.sh
+        chmod 755 /system/etc/install-recovery.sh
+        # note that an post install su daemon was installed
+        # so recovery doesn't freak out and recommend you disable
+        # the install-recovery.sh execute bit.
+        touch /system/etc/.installed_su_daemon
+    fi
+  fi
+fi
+
+umount /system
