@@ -6,7 +6,7 @@
 
     <uses-sdk
         android:minSdkVersion="8"
-        android:targetSdkVersion="17" />
+        android:targetSdkVersion="18" />
 
     <permission
         android:name="android.permission.REQUEST_SUPERUSER"
@@ -96,7 +96,7 @@
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
-        
+
         <receiver android:name=".PackageChangeReceiver" >
             <intent-filter>
                 <action android:name="android.intent.action.PACKAGE_ADDED" />
@@ -111,7 +111,7 @@
                 <data android:scheme="package" />
             </intent-filter>
         </receiver>
-        
+
     </application>
 
 </manifest>
